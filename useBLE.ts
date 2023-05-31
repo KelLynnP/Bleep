@@ -1,13 +1,12 @@
 /* eslint-disable no-bitwise */
 import { useMemo, useState } from "react";
 import { PermissionsAndroid, Platform } from "react-native";
-import { BleManager, Device } from "react-native-ble-plx";
-// import {
-//     BleError,
-//     BleManager,
-//     Characteristic,
-//     Device,
-// } from "react-native-ble-plx";
+import {
+    BleError,
+    BleManager,
+    Characteristic,
+    Device,
+} from "react-native-ble-plx";
 
 import * as ExpoDevice from "expo-device";
 
@@ -19,17 +18,17 @@ import * as ExpoDevice from "expo-device";
 interface BluetoothLowEnergyApi {
     requestPermissions(): Promise<boolean>;
     scanForPeripherals(): void;
-    // connectToDevice: (deviceId: Device) => Promise<void>;
-    // disconnectFromDevice: () => void;
-    // connectedDevice: Device | null;
     allDevices: Device[];
+    connectToDevice(deviceId: Device): Promise<void>; // Add this line
+    connectedDevice: Device | null;
+    disconnectFromDevice: () => void;
     // heartRate: number;
 }
 
 function useBLE(): BluetoothLowEnergyApi {
     const bleManager = useMemo(() => new BleManager(), []);
     const [allDevices, setAllDevices] = useState<Device[]>([]);
-    // const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
+    const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
     // const [heartRate, setHeartRate] = useState<number>(0);
 
     const requestAndroid31Permissions = async () => {
@@ -107,11 +106,33 @@ function useBLE(): BluetoothLowEnergyApi {
             }
         });
     }
-
+    const connectToDevice = async (device: Device) => {
+            try {
+                const deviceConnection = await bleManager.connectToDevice(device.id);
+                setConnectedDevice(deviceConnection);
+                await deviceConnection.discoverAllServicesAndCharacteristics(); // important
+                bleManager.stopDeviceScan();
+                // startStreamingData(deviceConnection);
+            } catch (e) {
+                console.log("FAILED TO CONNECT", e);
+            }
+        };
+    
+    const disconnectFromDevice = () => {
+        if (connectedDevice) {
+            bleManager.cancelDeviceConnection(connectedDevice.id);
+            setConnectedDevice(null);
+            // setHeartRate(0);
+        }
+    };
+        
     return {
-        scanForPeripherals,
         requestPermissions,
+        scanForPeripherals,
         allDevices,
+        connectToDevice,
+        connectedDevice,
+        disconnectFromDevice,
     }
 
 }
@@ -134,17 +155,7 @@ export default useBLE;
     //         }
         // };
 
-    // const connectToDevice = async (device: Device) => {
-    //     try {
-    //         const deviceConnection = await bleManager.connectToDevice(device.id);
-    //         setConnectedDevice(deviceConnection);
-    //         await deviceConnection.discoverAllServicesAndCharacteristics();
-    //         bleManager.stopDeviceScan();
-    //         startStreamingData(deviceConnection);
-    //     } catch (e) {
-    //         console.log("FAILED TO CONNECT", e);
-    //     }
-    // };
+  
 
     // const disconnectFromDevice = () => {
     //     if (connectedDevice) {

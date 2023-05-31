@@ -15,9 +15,9 @@ const App = () => {
     requestPermissions,
     scanForPeripherals,
     allDevices,
-    //   connectToDevice,
-    //   connectedDevice,
-    //   heartRate,
+    connectToDevice,
+    connectedDevice,
+    // heartRate,
     //   disconnectFromDevice,
   } = useBLE();
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
@@ -41,17 +41,17 @@ const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.heartRateTitleWrapper}>
-        {/*connectedDevice ? (
+        {connectedDevice ? (
           <>
-            <PulseIndicator />
-            <Text style={styles.heartRateTitleText}>Your Heart Rate Is:</Text>
-            <Text style={styles.heartRateText}>{heartRate} bpm</Text>
+            {/* <PulseIndicator /> */}
+            {/* <Text style={styles.heartRateTitleText}>Your Heart Rate Is:</Text> */}
+            {/* <Text style={styles.heartRateText}>{heartRate} bpm</Text> */}
           </>
-        ) : (*/}
-        <Text style={styles.heartRateTitleText}>
-          Bleep!
-        </Text>
-        {/*)} */}
+        ) : (
+          <Text style={styles.heartRateTitleText}>
+            Bleep!
+          </Text>
+        )}
       </View>
       <TouchableOpacity
         onPress={openModal}//onPress={connectedDevice ? disconnectFromDevice : openModal}
@@ -64,7 +64,7 @@ const App = () => {
       {<DeviceModal
         closeModal={hideModal}
         visible={isModalVisible}
-        connectToPeripheral={() => { }}
+        connectToPeripheral={connectToDevice}
         devices={allDevices}
       />}
     </SafeAreaView>
@@ -113,7 +113,7 @@ export default App;
 // import { StatusBar } from 'expo-status-bar';
 // import { StyleSheet, Text, View } from 'react-native';
 
-// export default function App() {
+// export default function App() { 
 //   return (
 //     <View style={styles.container}>
 //       <Text>Open up App.tsx to start working on your app!</Text>
