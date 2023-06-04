@@ -11,9 +11,11 @@ import {
 import * as ExpoDevice from "expo-device";
 
 import base64 from "react-native-base64";
+const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
-const SERVICE_UUID = "0000180d-0000-1000-8000-00805f9b34fb";
-const CHARACTERISTIC_UUID = "00002a37-0000-1000-8000-00805f9b34fb";
+// const SERVICE_UUID = "0000180d-0000-1000-8000-00805f9b34fb";
+// const CHARACTERISTIC_UUID = "00002a37-0000-1000-8000-00805f9b34fb";
 
 interface BluetoothLowEnergyApi {
     requestPermissions(): Promise<boolean>;
@@ -107,23 +109,47 @@ function useBLE(): BluetoothLowEnergyApi {
         });
     }
     const connectToDevice = async (device: Device) => {
-            try {
-                const deviceConnection = await bleManager.connectToDevice(device.id);
-                setConnectedDevice(deviceConnection);
-                await deviceConnection.discoverAllServicesAndCharacteristics(); // important
-                bleManager.stopDeviceScan();
-                // startStreamingData(deviceConnection);
-            } catch (e) {
-                console.log("FAILED TO CONNECT", e);
-            }
-        };
-    
+        try {
+            const deviceConnection = await bleManager.connectToDevice(device.id);
+            setConnectedDevice(deviceConnection);
+            await deviceConnection.discoverAllServicesAndCharacteristics(); // important
+            bleManager.stopDeviceScan();
+            startStreamingData(deviceConnection);
+        } catch (e) {
+            console.log("FAILED TO CONNECT", e);
+        }
+    };
+
     const disconnectFromDevice = () => {
         if (connectedDevice) {
             bleManager.cancelDeviceConnection(connectedDevice.id);
             setConnectedDevice(null);
             // setHeartRate(0);
         }
+    };
+
+
+
+    const onDataUpdate = (
+        error: BleError | null,
+        characteristic: Characteristic | null
+    ) => {
+        if (error) {
+            console.log(error);
+            return -1;
+        } else if (!characteristic?.value) {
+            console.log("No Data was recieved");
+            return -1;
+        }
+        console.log("raw value :");
+        // console.log(characteristic.value);
+        const rawData = base64.decode(characteristic.value);
+        console.log(rawData);
+
+        //// Do more real data processing specific to expected values from bright block
+        let incomingData: number = -1;
+
+        setData(incomingData);
     };
 
     const startStreamingData = async (device: Device) => {
@@ -138,28 +164,7 @@ function useBLE(): BluetoothLowEnergyApi {
         }
     };
 
-    const onDataUpdate= (
-        error: BleError | null,
-        characteristic: Characteristic | null
-    ) => {
-        if (error) {
-            console.log(error);
-            return -1;
-        } else if (!characteristic?.value) {
-            console.log("No Data was recieved");
-            return -1;
-        }
 
-        const rawData = base64.decode(characteristic.value);
-
-        
-        //// Do more real data processing specific to expected values from bright block
-        let incomingData: number = -1;
-
-        setData(incomingData);
-    };
-
-        
     return {
         requestPermissions,
         scanForPeripherals,
@@ -167,65 +172,10 @@ function useBLE(): BluetoothLowEnergyApi {
         connectToDevice,
         connectedDevice,
         disconnectFromDevice,
+        data,
     }
 
 }
 
 
 export default useBLE;
-
-
-
-    //     bleManager.startDeviceScan(null, null, (error, device) => {
-    //         if (error) {
-    //             console.log(error);
-    //         }
-    //         if (device && device.name?.includes("CorSense")) {
-    //             setAllDevices((prevState: Device[]) => {
-    //                 if (!isDuplicteDevice(prevState, device)) {
-    //                     return [...prevState, device];
-    //                 }
-    //                 return prevState;
-    //             });
-    //         }
-        // };
-
-  
-
-    // const disconnectFromDevice = () => {
-    //     if (connectedDevice) {
-    //         bleManager.cancelDeviceConnection(connectedDevice.id);
-    //         setConnectedDevice(null);
-    //         setHeartRate(0);
-    //     }
-    // };
-
-    // const onHeartRateUpdate = (
-    //     error: BleError | null,
-    //     characteristic: Characteristic | null
-    // ) => {
-    //     if (error) {
-    //         console.log(error);
-    //         return -1;
-    //     } else if (!characteristic?.value) {
-    //         console.log("No Data was recieved");
-    //         return -1;
-    //     }
-
-    //     const rawData = base64.decode(characteristic.value);
-    //     let innerHeartRate: number = -1;
-
-    //     const firstBitValue: number = Number(rawData) & 0x01;
-
-    //     if (firstBitValue === 0) {
-    //         innerHeartRate = rawData[1].charCodeAt(0);
-    //     } else {
-    //         innerHeartRate =
-    //             Number(rawData[1].charCodeAt(0) << 8) +
-    //             Number(rawData[2].charCodeAt(2));
-    //     }
-
-    //     setHeartRate(innerHeartRate);
-    // };
-
-
