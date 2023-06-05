@@ -142,14 +142,27 @@ function useBLE(): BluetoothLowEnergyApi {
             return -1;
         }
         console.log("raw value :");
-        // console.log(characteristic.value);
+        characteristic.value
+        // const rawData = base64.decode(characteristic.value);
         const rawData = base64.decode(characteristic.value);
+        const bytes = new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
+        const dataView = new DataView(bytes.buffer);
+        const value = dataView.getInt32(0, true);
+        console.log(value);
+
+        // // if float 
+        // const rawData = base64.decode(characteristic.value);
+        // const bytes = _.map(rawData, c => c.charCodeAt(0));
+        // const dataView = new DataView(new Uint8Array(bytes).buffer);
+        // const value = dataView.getFloat32(0, true);
+
+
         console.log(rawData);
 
         //// Do more real data processing specific to expected values from bright block
         let incomingData: number = -1;
 
-        setData(incomingData);
+        setData(value);
     };
 
     const startStreamingData = async (device: Device) => {

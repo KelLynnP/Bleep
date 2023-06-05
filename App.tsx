@@ -17,8 +17,8 @@ const App = () => {
     allDevices,
     connectToDevice,
     connectedDevice,
-    // heartRate,
-    //   disconnectFromDevice,
+    data,
+    disconnectFromDevice,
   } = useBLE();
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
@@ -40,15 +40,14 @@ const App = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.heartRateTitleWrapper}>
+      <View style={styles.DataTitleWrapper}>
         {connectedDevice ? (
           <>
-            {/* <PulseIndicator /> */}
-            {/* <Text style={styles.heartRateTitleText}>Your Heart Rate Is:</Text> */}
-            {/* <Text style={styles.heartRateText}>{heartRate} bpm</Text> */}
+            <Text style={styles.dataLabel}>Device Data</Text>
+            <Text style={styles.dataText}>{data}</Text>
           </>
         ) : (
-          <Text style={styles.heartRateTitleText}>
+          <Text style={styles.DataTitleText}>
             Bleep!
           </Text>
         )}
@@ -76,19 +75,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f2f2f2",
   },
-  heartRateTitleWrapper: {
+  DataTitleWrapper: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  heartRateTitleText: {
+  DataTitleText: {
     fontSize: 50,
     fontWeight: "bold",
     textAlign: "center",
     marginHorizontal: 20,
     color: "black",
   },
-  heartRateText: {
+  dataLabel: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  dataText: {
     fontSize: 25,
     marginTop: 15,
   },
@@ -109,24 +114,3 @@ const styles = StyleSheet.create({
 });
 
 export default App;
-
-// import { StatusBar } from 'expo-status-bar';
-// import { StyleSheet, Text, View } from 'react-native';
-
-// export default function App() { 
-//   return (
-//     <View style={styles.container}>
-//       <Text>Open up App.tsx to start working on your app!</Text>
-//       <StatusBar style="auto" />
-//     </View>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#fff',
-//     alignItems: 'center',
-//     justifyContent: 'center',
-//   },
-// });
