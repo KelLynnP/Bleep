@@ -9,6 +9,7 @@ import DeviceModal from "./DeviceConnectionModal";
 import useBLE from "./useBLE";
 import { ActionButton, ConnectModalButton, DisconnectButton } from "./components/ActionButton";
 // import {transmitData} from "transmitData.ts" 
+// FixMe: Event ID doesnt show up on first run 
 
 const App = () => {
   const {
