@@ -9,6 +9,7 @@ import {
     TouchableOpacity,
 } from "react-native";
 import { Device } from "react-native-ble-plx";
+import { ActionButton } from "./components/ActionButton";
 
 type DeviceModalListItemProps = {
     item: ListRenderItemInfo<Device>;
@@ -32,12 +33,7 @@ const DeviceModalListItem: FC<DeviceModalListItemProps> = (props) => {
     }, [closeModal, connectToPeripheral, item.item]);
 
     return (
-        <TouchableOpacity
-            onPress={connectAndCloseModal}
-            style={modalStyle.ctaButton}
-        >
-            <Text style={modalStyle.ctaButtonText}>{item.item.name}</Text>
-        </TouchableOpacity>
+        <ActionButton onPress={connectAndCloseModal} label={item.item.name ?? ""} />
     );
 };
 

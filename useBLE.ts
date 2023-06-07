@@ -12,7 +12,8 @@ import * as ExpoDevice from "expo-device";
 
 import base64 from "react-native-base64";
 const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+const CHARACTERISTIC_UUID_1 = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+const CHARACTERISTIC_UUID_2 = "1c95d5e3-d8f7-413a-bf3d-7a2e5d7be87e"
 
 // const SERVICE_UUID = "0000180d-0000-1000-8000-00805f9b34fb";
 // const CHARACTERISTIC_UUID = "00002a37-0000-1000-8000-00805f9b34fb";
@@ -128,8 +129,6 @@ function useBLE(): BluetoothLowEnergyApi {
         }
     };
 
-
-
     const onDataUpdate = (
         error: BleError | null,
         characteristic: Characteristic | null
@@ -141,23 +140,40 @@ function useBLE(): BluetoothLowEnergyApi {
             console.log("No Data was recieved");
             return -1;
         }
-        console.log("raw value :");
-        characteristic.value
-        // const rawData = base64.decode(characteristic.value);
+
         const rawData = base64.decode(characteristic.value);
         const bytes = new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
         const dataView = new DataView(bytes.buffer);
-        const value = dataView.getInt32(0, true);
-        console.log(value);
+        const value = 0;
 
-        // // if float 
+        if (characteristic.uuid === CHARACTERISTIC_UUID_1) {
+            // Process data for CHARACTERISTIC_UUID_1
+            const value = dataView.getFloat32(0, true);
+            console.log("CHARACTERISTIC_UUID_1 value:", value);
+            // Update state or perform any other actions with the value
+        } else if (characteristic.uuid === CHARACTERISTIC_UUID_2) {
+            // Process data for CHARACTERISTIC_UUID_2
+            const value = dataView.getFloat32(0, true);
+            console.log("CHARACTERISTIC_UUID_2 value:", value);
+            // Update state or perform any other actions with the value
+        }
+
+        // console.log("raw value :");
+        // // characteristic.value
         // const rawData = base64.decode(characteristic.value);
-        // const bytes = _.map(rawData, c => c.charCodeAt(0));
-        // const dataView = new DataView(new Uint8Array(bytes).buffer);
+        // const bytes = new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
+        // const dataView = new DataView(bytes.buffer);
+        // // const value = dataView.getInt32(0, true);
+        // // console.log(value);
+
+        // // // if float 
+        // // const rawData = base64.decode(characteristic.value);
+        // // const bytes = _.map(rawData, c => c.charCodeAt(0));
+        // // const dataView = new DataView(new Uint8Array(bytes).buffer);
         // const value = dataView.getFloat32(0, true);
 
 
-        console.log(rawData);
+        // console.log(rawData);
 
         //// Do more real data processing specific to expected values from bright block
         let incomingData: number = -1;
@@ -169,7 +185,13 @@ function useBLE(): BluetoothLowEnergyApi {
         if (device) {
             device.monitorCharacteristicForService(
                 SERVICE_UUID,
-                CHARACTERISTIC_UUID,
+                CHARACTERISTIC_UUID_1,
+                onDataUpdate
+            );
+
+            device.monitorCharacteristicForService(
+                SERVICE_UUID,
+                CHARACTERISTIC_UUID_2,
                 onDataUpdate
             );
         } else {

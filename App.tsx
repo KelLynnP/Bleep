@@ -7,8 +7,8 @@ import {
   View,
 } from "react-native";
 import DeviceModal from "./DeviceConnectionModal";
-// import { PulseIndicator } from "./PulseIndicator";
 import useBLE from "./useBLE";
+import { ActionButton, ConnectModalButton, DisconnectButton } from "./components/ActionButton";
 
 const App = () => {
   const {
@@ -45,6 +45,7 @@ const App = () => {
           <>
             <Text style={styles.dataLabel}>Device Data</Text>
             <Text style={styles.dataText}>{data}</Text>
+            <DisconnectButton onPress={disconnectFromDevice} />
           </>
         ) : (
           <Text style={styles.DataTitleText}>
@@ -52,14 +53,7 @@ const App = () => {
           </Text>
         )}
       </View>
-      <TouchableOpacity
-        onPress={openModal}//onPress={connectedDevice ? disconnectFromDevice : openModal}
-        style={styles.ctaButton}
-      >
-        <Text style={styles.ctaButtonText}>
-          {"Hello"}
-        </Text>
-      </TouchableOpacity>
+      <ConnectModalButton onPress={openModal} />
       {<DeviceModal
         closeModal={hideModal}
         visible={isModalVisible}
@@ -98,7 +92,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   ctaButton: {
-    backgroundColor: "#FF6060",
+    backgroundColor: "black",
     justifyContent: "center",
     alignItems: "center",
     height: 50,
