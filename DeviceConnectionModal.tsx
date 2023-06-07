@@ -6,7 +6,6 @@ import {
     SafeAreaView,
     Text,
     StyleSheet,
-    TouchableOpacity,
 } from "react-native";
 
 import { Device } from "react-native-ble-plx";
@@ -103,20 +102,20 @@ const modalStyle = StyleSheet.create({
         marginHorizontal: 20,
         textAlign: "center",
     },
-    ctaButton: {
-        backgroundColor: "#FF6060",
-        justifyContent: "center",
-        alignItems: "center",
-        height: 50,
-        marginHorizontal: 20,
-        marginBottom: 5,
-        borderRadius: 8,
-    },
-    ctaButtonText: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "white",
-    },
+    // ctaButton: {
+    //     backgroundColor: "#FF6060",
+    //     justifyContent: "center",
+    //     alignItems: "center",
+    //     height: 50,
+    //     marginHorizontal: 20,
+    //     marginBottom: 5,
+    //     borderRadius: 8,
+    // },
+    // ctaButtonText: {
+    //     fontSize: 18,
+    //     fontWeight: "bold",
+    //     color: "white",
+    // },
 });
 
 export default DeviceModal;

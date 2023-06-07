@@ -11,6 +11,7 @@
     "@config-plugins/react-native-ble-plx": "^6.0.0",
     "@expo/webpack-config": "^18.0.1",
     "@shopify/react-native-skia": "0.1.172",
+    "date": "^2.0.2",
     "eas-cli": "^3.13.2",
     "expo": "~48.0.15",
     "expo-dev-client": "~2.2.1",

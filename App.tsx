@@ -3,12 +3,12 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import DeviceModal from "./DeviceConnectionModal";
 import useBLE from "./useBLE";
 import { ActionButton, ConnectModalButton, DisconnectButton } from "./components/ActionButton";
+// import {transmitData} from "transmitData.ts" 
 
 const App = () => {
   const {
@@ -17,8 +17,9 @@ const App = () => {
     allDevices,
     connectToDevice,
     connectedDevice,
-    data,
-    disconnectFromDevice,
+    characteristicData,
+    disconnectFromDevice, // #fixMe running methd "correctly" gives warning Device 6F60A542-43C8-04E6-0D08-D7F59DBCBFE9 was disconnected
+    clearCharacteristicData,
   } = useBLE();
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
@@ -41,26 +42,45 @@ const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.DataTitleWrapper}>
+
         {connectedDevice ? (
           <>
+            <Text style={styles.dataLabel}>Event ID:</Text>
+            {characteristicData
+              .filter((data) => data.UUID !== "timestamp") // Filter out the timestamp entry
+              .map((data) => (
+                <View key={data.label}>
+                  <Text style={styles.dataLabel}>{data.timeStamp}</Text>
+                </View>
+              ))}
             <Text style={styles.dataLabel}>Device Data</Text>
-            <Text style={styles.dataText}>{data}</Text>
+            {characteristicData
+              .filter((data) => data.UUID !== "timestamp") // Filter out the timestamp entry
+              .map((data) => (
+                <View key={data.label}>
+                  <Text style={styles.dataLabel}>{data.label}</Text>
+                  <Text style={styles.dataText}>{data.value}</Text>
+                </View>
+              ))}
+
             <DisconnectButton onPress={disconnectFromDevice} />
+            <ActionButton onPress={clearCharacteristicData} label={"Delete Data"} />
+            {/* <ActionButton onPress={transmitData} label={"transmitData"} /> */}
           </>
         ) : (
-          <Text style={styles.DataTitleText}>
-            Bleep!
-          </Text>
+          <>
+            <Text style={styles.DataTitleText}>Bleep!</Text>
+            <ConnectModalButton onPress={openModal} />
+            <DeviceModal
+              closeModal={hideModal}
+              visible={isModalVisible}
+              connectToPeripheral={connectToDevice}
+              devices={allDevices}
+            />
+          </>
         )}
       </View>
-      <ConnectModalButton onPress={openModal} />
-      {<DeviceModal
-        closeModal={hideModal}
-        visible={isModalVisible}
-        connectToPeripheral={connectToDevice}
-        devices={allDevices}
-      />}
-    </SafeAreaView>
+    </SafeAreaView >
   );
 };
 

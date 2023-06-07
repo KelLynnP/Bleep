@@ -11,12 +11,24 @@ import {
 import * as ExpoDevice from "expo-device";
 
 import base64 from "react-native-base64";
-const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-const CHARACTERISTIC_UUID_1 = "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-const CHARACTERISTIC_UUID_2 = "1c95d5e3-d8f7-413a-bf3d-7a2e5d7be87e"
 
-// const SERVICE_UUID = "0000180d-0000-1000-8000-00805f9b34fb";
-// const CHARACTERISTIC_UUID = "00002a37-0000-1000-8000-00805f9b34fb";
+interface CharacteristicData {
+    timeStamp: string;
+    UUID: string;
+    label: string;
+    value: number;
+}
+const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+const CHARACTERISTIC_UUIDS = [
+    "beb5483e-36e1-4688-b7f5-ea07361b26a8",
+    "1c95d5e3-d8f7-413a-bf3d-7a2e5d7be87e",
+    // Add more UUIDs here as needed
+];
+const UUID_DataLabels = [
+    "Data1",
+    "Data2",
+    // Add more UUIDs here as needed
+];
 
 interface BluetoothLowEnergyApi {
     requestPermissions(): Promise<boolean>;
@@ -25,14 +37,16 @@ interface BluetoothLowEnergyApi {
     connectToDevice(deviceId: Device): Promise<void>; // Add this line
     connectedDevice: Device | null;
     disconnectFromDevice: () => void;
-    data: number;
+    characteristicData: CharacteristicData[];
+    clearCharacteristicData: () => void;
 }
 
 function useBLE(): BluetoothLowEnergyApi {
     const bleManager = useMemo(() => new BleManager(), []);
     const [allDevices, setAllDevices] = useState<Device[]>([]);
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-    const [data, setData] = useState<number>(0);
+    const [characteristicData, setCharacteristicData] = useState<CharacteristicData[]>([]);
+    const [streamId, setStreamId] = useState<string | null>(null); // State variable to store the stream ID
 
     const requestAndroid31Permissions = async () => {
         const bluetoothScanPermission = await PermissionsAndroid.request(
@@ -115,6 +129,8 @@ function useBLE(): BluetoothLowEnergyApi {
             setConnectedDevice(deviceConnection);
             await deviceConnection.discoverAllServicesAndCharacteristics(); // important
             bleManager.stopDeviceScan();
+            setStreamId(new Date().toISOString()); // Set the stream ID using the current timestamp when connecting to a device
+            // setStreamId("hello");
             startStreamingData(deviceConnection);
         } catch (e) {
             console.log("FAILED TO CONNECT", e);
@@ -144,59 +160,71 @@ function useBLE(): BluetoothLowEnergyApi {
         const rawData = base64.decode(characteristic.value);
         const bytes = new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
         const dataView = new DataView(bytes.buffer);
-        const value = 0;
 
-        if (characteristic.uuid === CHARACTERISTIC_UUID_1) {
-            // Process data for CHARACTERISTIC_UUID_1
-            const value = dataView.getFloat32(0, true);
-            console.log("CHARACTERISTIC_UUID_1 value:", value);
-            // Update state or perform any other actions with the value
-        } else if (characteristic.uuid === CHARACTERISTIC_UUID_2) {
-            // Process data for CHARACTERISTIC_UUID_2
-            const value = dataView.getFloat32(0, true);
-            console.log("CHARACTERISTIC_UUID_2 value:", value);
-            // Update state or perform any other actions with the value
+        let value = 0;
+        let label = "";
+
+        // Iterate over the UUIDs array to check the characteristic UUID
+        for (let i = 0; i < CHARACTERISTIC_UUIDS.length; i++) {
+            if (characteristic.uuid === CHARACTERISTIC_UUIDS[i]) {
+                value = dataView.getFloat32(0, true);
+                label = UUID_DataLabels[i];
+                // console.log('Label:', label); // Log the label to verify its value
+                // console.log(`${uuid} value:`, value);
+                break; // Exit the loop once a match is found
+            }
         }
 
-        // console.log("raw value :");
-        // // characteristic.value
-        // const rawData = base64.decode(characteristic.value);
-        // const bytes = new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
-        // const dataView = new DataView(bytes.buffer);
-        // // const value = dataView.getInt32(0, true);
-        // // console.log(value);
+        // Update characteristicData array
+        setCharacteristicData((prevData) => {
 
-        // // // if float 
-        // // const rawData = base64.decode(characteristic.value);
-        // // const bytes = _.map(rawData, c => c.charCodeAt(0));
-        // // const dataView = new DataView(new Uint8Array(bytes).buffer);
-        // const value = dataView.getFloat32(0, true);
+            // Find the index of the characteristic in the array
+            const index = prevData.findIndex((data) => data.UUID === characteristic.uuid);
 
+            const newCharacteristicData: CharacteristicData = {
+                timeStamp: streamId!,
+                UUID: characteristic.uuid,
+                label: label,
+                value: value,
+            };
 
-        // console.log(rawData);
+            if (index !== -1) {
+                const updatedData = [...prevData];
+                updatedData[index].value = value;
+                return updatedData;
+            } else {
+                return [...prevData, newCharacteristicData];
+            }
+        });
 
-        //// Do more real data processing specific to expected values from bright block
-        let incomingData: number = -1;
-
-        setData(value);
     };
 
     const startStreamingData = async (device: Device) => {
         if (device) {
-            device.monitorCharacteristicForService(
-                SERVICE_UUID,
-                CHARACTERISTIC_UUID_1,
-                onDataUpdate
-            );
-
-            device.monitorCharacteristicForService(
-                SERVICE_UUID,
-                CHARACTERISTIC_UUID_2,
-                onDataUpdate
-            );
+            for (const uuid of CHARACTERISTIC_UUIDS) {
+                device.monitorCharacteristicForService(
+                    SERVICE_UUID,
+                    uuid,
+                    onDataUpdate
+                );
+            }
+            // Add the timestamp entry to the characteristicData array
+            setCharacteristicData((prevData) => {
+                const newCharacteristicData: CharacteristicData = {
+                    timeStamp: streamId!,
+                    UUID: "timestamp",
+                    label: "Timestamp",
+                    value: 0,
+                };
+                return [newCharacteristicData, ...prevData];
+            });
         } else {
             console.log("No Device Connected");
         }
+    };
+
+    const clearCharacteristicData = () => {
+        setCharacteristicData([]);
     };
 
 
@@ -207,7 +235,8 @@ function useBLE(): BluetoothLowEnergyApi {
         connectToDevice,
         connectedDevice,
         disconnectFromDevice,
-        data,
+        characteristicData,
+        clearCharacteristicData
     }
 
 }

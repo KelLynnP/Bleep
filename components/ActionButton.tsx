@@ -6,7 +6,7 @@ import {
     Text,
     TouchableOpacity,
 } from "react-native";
-
+// #Fix me: Modal button stretches across screen but other buttons do not. 
 export const ActionButton = (props: { label: string, styleOverrides?: object, onPress?: ((event: GestureResponderEvent) => void) | undefined }) => {
     return (
 
@@ -18,12 +18,11 @@ export const ActionButton = (props: { label: string, styleOverrides?: object, on
                 justifyContent: "center",
                 alignItems: "center",
                 height: 50,
-                marginHorizontal: 20,
+                marginHorizontal: 2,
                 marginBottom: 5,
-                borderRadius: 8, ...props.styleOverrides
+                borderRadius: 8, ...props.styleOverrides,
             }}
-            onPress={props.onPress}//onPress={connectedDevice ? disconnectFromDevice : openModal}
-        // style={styles.ctaButton}
+            onPress={props.onPress}
         >
             <Text style={{ color: 'white', fontSize: 18, fontWeight: "bold" }}>
                 {props.label}
