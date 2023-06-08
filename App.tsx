@@ -8,8 +8,8 @@ import {
 import DeviceModal from "./DeviceConnectionModal";
 import useBLE from "./useBLE";
 import { ActionButton, ConnectModalButton, DisconnectButton } from "./components/ActionButton";
-// import {transmitData} from "transmitData.ts" 
-// FixMe: Event ID doesnt show up on first run 
+import transmitData from "./transmitData";
+// FixMe: Event ID doesnt show up on first run ds
 
 const App = () => {
   const {
@@ -22,6 +22,8 @@ const App = () => {
     disconnectFromDevice, // #fixMe running methd "correctly" gives warning Device 6F60A542-43C8-04E6-0D08-D7F59DBCBFE9 was disconnected
     clearCharacteristicData,
   } = useBLE();
+  const { sendData } = transmitData();
+
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   const scanForDevices = async () => {
@@ -43,7 +45,6 @@ const App = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.DataTitleWrapper}>
-
         {connectedDevice ? (
           <>
             <Text style={styles.dataLabel}>Event ID:</Text>
@@ -65,8 +66,8 @@ const App = () => {
               ))}
 
             <DisconnectButton onPress={disconnectFromDevice} />
-            <ActionButton onPress={clearCharacteristicData} label={"Delete Data"} />
-            {/* <ActionButton onPress={transmitData} label={"transmitData"} /> */}
+            {/* <ActionButton onPress={clearCharacteristicData} label={"Delete Data"} /> */}
+            <ActionButton onPress={sendData} label={"TransmitData"} />
           </>
         ) : (
           <>

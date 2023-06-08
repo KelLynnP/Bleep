@@ -5,15 +5,19 @@ import { PermissionsAndroid, Platform } from "react-native";
 
 interface TransmitDataApi {
     //functions go here 
+    sendData(): void;
 }
 
-function useBLE(): TransmitDataApi {
+function transmitData(): TransmitDataApi {
 
+    const sendData = () => {
+        console.log("send data")
+    }
     return {
-
+        sendData
     }
 
 }
 
 
-export default useBLE;
+export default transmitData;
