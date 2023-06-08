@@ -23,6 +23,9 @@ const App = () => {
     clearCharacteristicData,
   } = useBLE();
   const { sendData } = transmitData();
+  const handleTransmitData = () => {
+    sendData(characteristicData);
+  }
 
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
@@ -67,7 +70,7 @@ const App = () => {
 
             <DisconnectButton onPress={disconnectFromDevice} />
             {/* <ActionButton onPress={clearCharacteristicData} label={"Delete Data"} /> */}
-            <ActionButton onPress={sendData} label={"TransmitData"} />
+            <ActionButton onPress={handleTransmitData} label={"TransmitData"} />
           </>
         ) : (
           <>
