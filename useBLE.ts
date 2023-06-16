@@ -16,8 +16,25 @@ interface CharacteristicData {
     timeStamp: string;
     UUID: string;
     label: string;
-    value: number;
+    value: string;
 }
+
+interface SensorDataVector {
+    eventTimeStamp: string;
+    UUID: string;
+    label: string;
+    data: {
+        dataTimeStamp: string[]; // Sample rate for this characteristic? need to make sure I can send this as the "label"
+        values: string[]; // 
+        packetCount: number[];
+    };
+};
+
+interface UniversalTimeStamp {
+    TimeStamp: string;
+    dataPacketNumber: number;
+};
+
 const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 const CHARACTERISTIC_UUIDS = [
     "beb5483e-36e1-4688-b7f5-ea07361b26a8",
@@ -25,8 +42,9 @@ const CHARACTERISTIC_UUIDS = [
     // Add more UUIDs here as needed
 ];
 const UUID_DataLabels = [
-    "Data1",
-    "Data2",
+    "TimeStamp",
+    "Latitude",
+    "Longitude",
     // Add more UUIDs here as needed
 ];
 
@@ -46,7 +64,9 @@ function useBLE(): BluetoothLowEnergyApi {
     const [allDevices, setAllDevices] = useState<Device[]>([]);
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
     const [characteristicData, setCharacteristicData] = useState<CharacteristicData[]>([]);
-    const [streamId, setStreamId] = useState<string | null>(null); // State variable to store the stream ID
+    const [SensorDataVector, setSensorDataVector] = useState<SensorDataVector[]>([]);
+    const [EventTimestampID, setEventTimestampID] = useState<string | null>(null); // State variable to store the stream ID
+    const [UniversalTimeStamp, setUniversalTimeStamp] = useState<UniversalTimeStamp[]>([]);
 
     const requestAndroid31Permissions = async () => {
         const bluetoothScanPermission = await PermissionsAndroid.request(
@@ -112,7 +132,6 @@ function useBLE(): BluetoothLowEnergyApi {
             if (error) {
                 console.error(error);
             }
-            // console.log(device)
             if (device && device.name?.includes("BLEEP")) {
                 setAllDevices((prevState: Device[]) => {
                     if (!isDuplicteDevice(prevState, device)) {
@@ -125,15 +144,35 @@ function useBLE(): BluetoothLowEnergyApi {
     }
     const connectToDevice = async (device: Device) => {
         try {
+            const date = new Date().toISOString();
+            setEventTimestampID(date); // Set the stream ID using the current timestamp when connecting to a device
+            console.log(date);
             const deviceConnection = await bleManager.connectToDevice(device.id);
             setConnectedDevice(deviceConnection);
             await deviceConnection.discoverAllServicesAndCharacteristics(); // important
             bleManager.stopDeviceScan();
-            setStreamId(new Date().toISOString()); // Set the stream ID using the current timestamp when connecting to a device
-            // setStreamId("hello");
+            console.log(EventTimestampID!);
             startStreamingData(deviceConnection);
         } catch (e) {
             console.log("FAILED TO CONNECT", e);
+        }
+    };
+
+    const startStreamingData = async (device: Device) => {
+        if (device) {
+            const currentEventTimestampID = EventTimestampID; // should this go here or should I set this right above? the first call is above in line 141
+            for (const uuid of CHARACTERISTIC_UUIDS) { // For each UUID package recieved from our list above
+                device.monitorCharacteristicForService(
+                    SERVICE_UUID,
+                    uuid,
+                    (error: BleError | null, characteristic: Characteristic | null) => {
+                        // Use the local currentEventTimestampID instead of EventTimestampID directly
+                        onDataUpdate(error, characteristic, currentEventTimestampID);
+                    }
+                );
+            }
+        } else {
+            console.log("No Device Connected");
         }
     };
 
@@ -141,13 +180,16 @@ function useBLE(): BluetoothLowEnergyApi {
         if (connectedDevice) {
             bleManager.cancelDeviceConnection(connectedDevice.id);
             setConnectedDevice(null);
+            clearCharacteristicData();
             // setHeartRate(0);
         }
+
     };
 
-    const onDataUpdate = (
+    const onDataUpdate = ( // when recieve data 
         error: BleError | null,
-        characteristic: Characteristic | null
+        characteristic: Characteristic | null, //BLE object
+        currentEventTimestampID: string | null
     ) => {
         if (error) {
             console.log(error);
@@ -158,75 +200,80 @@ function useBLE(): BluetoothLowEnergyApi {
         }
 
         const rawData = base64.decode(characteristic.value);
-        const bytes = new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
-        const dataView = new DataView(bytes.buffer);
-
-        let value = 0;
+        // console.log(rawData); //const dataString = Buffer.from(rawData).toString();
+        let dataString: string = rawData; // Updated the type to string | number[]
         let label = "";
 
-        // Iterate over the UUIDs array to check the characteristic UUID
+        // Which data object are you? // Iterate over the UUIDs array to check the characteristic UUID
         for (let i = 0; i < CHARACTERISTIC_UUIDS.length; i++) {
             if (characteristic.uuid === CHARACTERISTIC_UUIDS[i]) {
-                value = dataView.getFloat32(0, true);
                 label = UUID_DataLabels[i];
-                // console.log('Label:', label); // Log the label to verify its value
-                // console.log(`${uuid} value:`, value);
+                console.log('Label:', label); // Log the label to verify its value
+                if (label === UUID_DataLabels[0]) {
+                    setUniversalTimeStamp((prevData) => {
+                        const newUniversalTimeStamp: UniversalTimeStamp = {
+                            TimeStamp: rawData,
+                            dataPacketNumber: prevData.length + 1,
+                        };
+                        console.log("previous data", prevData)
+                        return [...prevData, newUniversalTimeStamp];
+                    });
+                }
                 break; // Exit the loop once a match is found
             }
         }
-
-        // Update characteristicData array
-        setCharacteristicData((prevData) => {
-
-            // Find the index of the characteristic in the array
+        // Update sensorDataVector array
+        setSensorDataVector((prevData) => {
+            // does this data exist yet
             const index = prevData.findIndex((data) => data.UUID === characteristic.uuid);
+            if (index !== -1) { // if new characteristic of data
+                const updatedData = [...prevData]; // declare a new array which has all the data from the old one
+                updatedData[index].data.packetCount.push(1);
+                //Set up timestamp reference to packet 
 
-            const newCharacteristicData: CharacteristicData = {
-                timeStamp: streamId!,
-                UUID: characteristic.uuid,
-                label: label,
-                value: value,
-            };
+                // FIXME : there is no way this is properly tracking across the data for which field is in the right place
+                const universalTimeStampData = UniversalTimeStamp;
+                console.log(universalTimeStampData);
+                // const packetIndex = universalTimeStampData.length
+                // updatedData[index].data.dataTimeStamp = universalTimeStampData[packetIndex].TimeStamp;
+                updatedData[index].data.dataTimeStamp = ["hello"];
+                updatedData[index].data.values.push(dataString); // Push dataString to values array
 
-            if (index !== -1) {
-                const updatedData = [...prevData];
-                updatedData[index].value = value;
+                // console.log(universalTimeStampData[packetIndex].TimeStamp)
+                // updatedData[index].data.dataTimeStamp = universalTimeStampData[packetIndex].TimeStamp;
+                // updatedData[index].data.dataTimeStamp = "hi";
+                // Replace [0] with your desired data timestamp
+
+                updatedData[index].data.values.push(dataString);
+
                 return updatedData;
-            } else {
-                return [...prevData, newCharacteristicData];
+            } else { // this is the first time we see this characteristic data 
+                const universalTimeStampData = UniversalTimeStamp;
+                const packetIndex = universalTimeStampData.length
+                // console.log(universalTimeStampData[packetIndex].TimeStamp)
+                // const FirstPacketTimeStamp = universalTimeStampData[packetIndex].TimeStamp;
+
+                const newSensorData: SensorDataVector = {
+                    eventTimeStamp: currentEventTimestampID!, // Use currentEventTimestampID instead of EventTimestampID
+                    UUID: characteristic.uuid,
+                    label: label,
+                    data: {
+                        dataTimeStamp: ["FirstHello"], //FirstPacketTimeStamp, // Replace [0] with your desired data timestamp
+                        values: [dataString],
+                        packetCount: [0],
+                    },
+                };
+                return [...prevData, newSensorData];
             }
         });
-
-    };
-
-    const startStreamingData = async (device: Device) => {
-        if (device) {
-            for (const uuid of CHARACTERISTIC_UUIDS) {
-                device.monitorCharacteristicForService(
-                    SERVICE_UUID,
-                    uuid,
-                    onDataUpdate
-                );
-            }
-            // Add the timestamp entry to the characteristicData array
-            setCharacteristicData((prevData) => {
-                const newCharacteristicData: CharacteristicData = {
-                    timeStamp: streamId!,
-                    UUID: "timestamp",
-                    label: "Timestamp",
-                    value: 0,
-                };
-                return [newCharacteristicData, ...prevData];
-            });
-        } else {
-            console.log("No Device Connected");
-        }
     };
 
     const clearCharacteristicData = () => {
         setCharacteristicData([]);
-    };
+        setSensorDataVector([]);
+        setUniversalTimeStamp([]);
 
+    };
 
     return {
         requestPermissions,
@@ -241,5 +288,5 @@ function useBLE(): BluetoothLowEnergyApi {
 
 }
 
-
 export default useBLE;
+
