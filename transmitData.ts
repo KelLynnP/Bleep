@@ -2,21 +2,26 @@
 import { useMemo, useState } from "react";
 import { PermissionsAndroid, Platform } from "react-native";
 
-interface CharacteristicData {
-    timeStamp: string;
+interface SensorDataVector {
+    eventTimeStamp: string;
     UUID: string;
     label: string;
-    value: number;
+    data: SensorDataItem[];
+};
+
+type SensorDataItem = {
+    TimeStamp: string
+    value: string
 }
 
 interface TransmitDataApi {
     //functions go here 
-    sendData(data: CharacteristicData[]): void;
+    sendData(data: SensorDataVector[]): void;
 }
 
 function transmitData(): TransmitDataApi {
 
-    const sendData = (data: CharacteristicData[]) => {
+    const sendData = (data: SensorDataVector[]) => {
         console.log("send data", data)
     }
     return {

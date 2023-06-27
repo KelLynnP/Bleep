@@ -21,10 +21,12 @@ const App = () => {
     characteristicData,
     disconnectFromDevice, // #fixMe running methd "correctly" gives warning Device 6F60A542-43C8-04E6-0D08-D7F59DBCBFE9 was disconnected
     clearCharacteristicData,
+    SensorDataVector,
   } = useBLE();
   const { sendData } = transmitData();
+
   const handleTransmitData = () => {
-    sendData(characteristicData);
+    sendData(SensorDataVector);
   }
 
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
@@ -69,7 +71,7 @@ const App = () => {
               ))}
 
             <DisconnectButton onPress={disconnectFromDevice} />
-            {/* <ActionButton onPress={clearCharacteristicData} label={"Delete Data"} /> */}
+            <ActionButton onPress={clearCharacteristicData} label={"Delete Data"} />
             <ActionButton onPress={handleTransmitData} label={"TransmitData"} />
           </>
         ) : (
