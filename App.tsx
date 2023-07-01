@@ -6,30 +6,40 @@ import {
   View,
 } from "react-native";
 import DeviceModal from "./DeviceConnectionModal";
+import DummyDeviceModal from "./dummyDeviceConnectionModal";
+
 import useBLE from "./useBLE";
 import { ActionButton, ConnectModalButton, DisconnectButton } from "./components/ActionButton";
 import transmitData from "./transmitData";
+import DummyUseBLE from "./dummyUseBLE";
 // FixMe: Event ID doesnt show up on first run ds
 
 const App = () => {
+
+  // Conditionally choose the appropriate modal component based on isDummyMode
+  // const ModalComponent = isDummyMode ? DummyDeviceModal : DeviceModal;
+  const ModalComponent = DeviceModal;
+  const isDummyMode = true;
+
   const {
     requestPermissions,
     scanForPeripherals,
     allDevices,
     connectToDevice,
     connectedDevice,
-    characteristicData,
     disconnectFromDevice, // #fixMe running methd "correctly" gives warning Device 6F60A542-43C8-04E6-0D08-D7F59DBCBFE9 was disconnected
-    clearCharacteristicData,
+    clearSensorDataVector,
     SensorDataVector,
-  } = useBLE();
+    connectToDeviceDummy
+  } = isDummyMode ? DummyUseBLE() : useBLE();
+
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false)
+    ;
   const { sendData } = transmitData();
 
   const handleTransmitData = () => {
     sendData(SensorDataVector);
   }
-
-  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   const scanForDevices = async () => {
     const isPermissionsEnabled = await requestPermissions();
@@ -37,6 +47,10 @@ const App = () => {
       scanForPeripherals();
     }
   };
+
+  const dummyModeDataBegin = () => {
+    connectToDeviceDummy();
+  }
 
   const hideModal = () => {
     setIsModalVisible(false);
@@ -47,38 +61,48 @@ const App = () => {
     setIsModalVisible(true);
   };
 
+
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.DataTitleWrapper}>
-        {connectedDevice ? (
+        {connectedDevice || isDummyMode ? (
           <>
             <Text style={styles.dataLabel}>Event ID:</Text>
-            {characteristicData
-              .filter((data) => data.UUID !== "timestamp") // Filter out the timestamp entry
+
+            {SensorDataVector // I want this to be a timestamp in the upper right hand corner
+              .filter((data) => data.UUID == "timestamp") // Filter out the timestamp entry
               .map((data) => (
                 <View key={data.label}>
-                  <Text style={styles.dataLabel}>{data.timeStamp}</Text>
+                  {data.data.map((item, index) => (
+                    <Text key={index} style={styles.dataText}>{item.TimeStamp}</Text>
+                  ))}
                 </View>
               ))}
+
+
             <Text style={styles.dataLabel}>Device Data</Text>
-            {characteristicData
+
+            {SensorDataVector // I want this to be the data in a grid view 
               .filter((data) => data.UUID !== "timestamp") // Filter out the timestamp entry
               .map((data) => (
                 <View key={data.label}>
                   <Text style={styles.dataLabel}>{data.label}</Text>
-                  <Text style={styles.dataText}>{data.value}</Text>
+                  {data.data.map((item, index) => (
+                    <Text key={index} style={styles.dataText}>{item.value}</Text>
+                  ))}
                 </View>
               ))}
-
+            <ActionButton onPress={dummyModeDataBegin} label={"DebugRun"} />
             <DisconnectButton onPress={disconnectFromDevice} />
-            <ActionButton onPress={clearCharacteristicData} label={"Delete Data"} />
+            <ActionButton onPress={clearSensorDataVector} label={"Delete Data"} />
             <ActionButton onPress={handleTransmitData} label={"TransmitData"} />
           </>
-        ) : (
+        ) : ( // This is the home screen
           <>
-            <Text style={styles.DataTitleText}>Bleep!</Text>
+            <Text style={styles.DataTitleText}>Welcome to Bleep!</Text>
             <ConnectModalButton onPress={openModal} />
-            <DeviceModal
+            <ModalComponent
               closeModal={hideModal}
               visible={isModalVisible}
               connectToPeripheral={connectToDevice}
@@ -86,6 +110,7 @@ const App = () => {
             />
           </>
         )}
+
       </View>
     </SafeAreaView >
   );
@@ -109,14 +134,14 @@ const styles = StyleSheet.create({
     color: "black",
   },
   dataLabel: {
-    fontSize: 18,
+    fontSize: 8,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 0,
     textAlign: "center",
   },
   dataText: {
-    fontSize: 25,
-    marginTop: 15,
+    fontSize: 8,
+    marginTop: 2,
   },
   ctaButton: {
     backgroundColor: "black",

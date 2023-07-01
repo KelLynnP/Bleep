@@ -9,7 +9,6 @@ import {
 } from "react-native-ble-plx";
 
 import * as ExpoDevice from "expo-device";
-
 import base64 from "react-native-base64";
 import * as _ from "lodash";
 
@@ -85,20 +84,22 @@ interface BluetoothLowEnergyApi {
     connectToDevice(deviceId: Device): Promise<void>; // Add this line
     connectedDevice: Device | null;
     disconnectFromDevice: () => void;
-    characteristicData: CharacteristicData[];
-    clearCharacteristicData: () => void;
+    clearSensorDataVector: () => void;
     SensorDataVector: SensorDataVector[];
+    connectToDeviceDummy(): Promise<void>; // Add this line
 }
 
 function useBLE(): BluetoothLowEnergyApi {
     const bleManager = useMemo(() => new BleManager(), []);
     const [allDevices, setAllDevices] = useState<Device[]>([]);
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-    const [characteristicData, setCharacteristicData] = useState<CharacteristicData[]>([]);
     const [SensorDataVector, setSensorDataVector] = useState<SensorDataVector[]>([]);
     // const [SensorDataVector, setSensorDataVector] = useState<SensorDataVectorOption2[]>([]);
     const [EventTimestampID, setEventTimestampID] = useState<string | null>(null); // State variable to store the stream ID
     const [UniversalTimeStamp, setUniversalTimeStamp] = useState<UniversalTimeStamp[]>([]);
+    const connectToDeviceDummy = async () => {
+        // only runs in dummy function (cancel me ;) 
+    };
 
     const requestAndroid31Permissions = async () => {
         const bluetoothScanPermission = await PermissionsAndroid.request(
@@ -212,7 +213,7 @@ function useBLE(): BluetoothLowEnergyApi {
         if (connectedDevice) {
             bleManager.cancelDeviceConnection(connectedDevice.id);
             setConnectedDevice(null);
-            clearCharacteristicData();
+            (clearSensorDataVector);
         }
 
     };
@@ -263,8 +264,8 @@ function useBLE(): BluetoothLowEnergyApi {
         }
     };
 
-    const clearCharacteristicData = () => {
-        setCharacteristicData([]);
+    const clearSensorDataVector = () => {
+        // setCharacteristicData([]);
         setSensorDataVector([]);
         setUniversalTimeStamp([]);
 
@@ -277,9 +278,10 @@ function useBLE(): BluetoothLowEnergyApi {
         connectToDevice,
         connectedDevice,
         disconnectFromDevice,
-        characteristicData,
-        clearCharacteristicData,
-        SensorDataVector
+        // characteristicData,
+        clearSensorDataVector,
+        SensorDataVector,
+        connectToDeviceDummy
     }
 
 }
