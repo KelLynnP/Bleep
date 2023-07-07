@@ -19,7 +19,7 @@ const App = () => {
   // Conditionally choose the appropriate modal component based on isDummyMode
   // const ModalComponent = isDummyMode ? DummyDeviceModal : DeviceModal;
   const ModalComponent = DeviceModal;
-  const isDummyMode = true;
+  const isDummyMode = false;
 
   const {
     requestPermissions,
@@ -75,7 +75,8 @@ const App = () => {
               .map((data) => (
                 <View key={data.label}>
                   {data.data.map((item, index) => (
-                    <Text key={index} style={styles.dataText}>{item.TimeStamp}</Text>
+                    <Text style={styles.dataText}>{data.data[data.data.length - 1]?.TimeStamp}</Text>
+                    // <Text key={index} style={styles.dataText}>{item.TimeStamp}</Text>
                   ))}
                 </View>
               ))}

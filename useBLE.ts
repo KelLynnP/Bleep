@@ -12,29 +12,20 @@ import * as ExpoDevice from "expo-device";
 import base64 from "react-native-base64";
 import * as _ from "lodash";
 
-interface CharacteristicData {
-    timeStamp: string;
-    UUID: string;
-    label: string;
-    value: string;
-}
 
 interface SensorDataVector {
+    [label: string]: SensorData;
+}
+
+interface SensorData {
     eventTimeStamp: string;
     UUID: string;
-    label: string;
     data: SensorDataItem[];
 };
 
 type SensorDataItem = {
-    TimeStamp: string
-    value: string
+    [TimeStamp: string]: string;
 }
-
-interface UniversalTimeStamp {
-    TimeStamp: string;
-    dataPacketNumber: number;
-};
 
 const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 
@@ -94,11 +85,8 @@ function useBLE(): BluetoothLowEnergyApi {
     const [allDevices, setAllDevices] = useState<Device[]>([]);
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
     const [SensorDataVector, setSensorDataVector] = useState<SensorDataVector[]>([]);
-    // const [SensorDataVector, setSensorDataVector] = useState<SensorDataVectorOption2[]>([]);
     const [EventTimestampID, setEventTimestampID] = useState<string | null>(null); // State variable to store the stream ID
-    const [UniversalTimeStamp, setUniversalTimeStamp] = useState<UniversalTimeStamp[]>([]);
     const connectToDeviceDummy = async () => {
-        // only runs in dummy function (cancel me ;) 
     };
 
     const requestAndroid31Permissions = async () => {
@@ -156,6 +144,7 @@ function useBLE(): BluetoothLowEnergyApi {
             return true;
         }
     };
+
     const isDuplicteDevice = (devices: Device[], nextDevice: Device) =>
         devices.findIndex((device) => nextDevice.id === device.id) > -1;
 
@@ -177,14 +166,10 @@ function useBLE(): BluetoothLowEnergyApi {
 
     const connectToDevice = async (device: Device) => {
         try {
-            const date = new Date().toISOString();
-            setEventTimestampID(date); // Set the stream ID using the current timestamp when connecting to a device
-            console.log(date);
             const deviceConnection = await bleManager.connectToDevice(device.id);
             setConnectedDevice(deviceConnection);
             await deviceConnection.discoverAllServicesAndCharacteristics(); // important
             bleManager.stopDeviceScan();
-            // console.log(EventTimestampID!);
             startStreamingData(deviceConnection);
         } catch (e) {
             console.log("FAILED TO CONNECT", e);
@@ -193,7 +178,10 @@ function useBLE(): BluetoothLowEnergyApi {
 
     const startStreamingData = async (device: Device) => {
         if (device) {
-            const currentEventTimestampID = EventTimestampID; // should this go here or should I set this right above? the first call is above in line 141
+            const date = new Date().toISOString();
+            setEventTimestampID(date); // Set the stream ID using the current timestamp when connecting to a device
+            console.log(date);
+            const currentEventTimestampID = date; // should this go here or should I set this right above? the first call is above in line 141
             for (const uuid of CHARACTERISTIC_UUIDS) { // For each UUID package recieved from our list above
                 device.monitorCharacteristicForService(
                     SERVICE_UUID,
@@ -232,43 +220,47 @@ function useBLE(): BluetoothLowEnergyApi {
         }
 
         const rawData = base64.decode(characteristic.value);
-        console.log("This is the raw data", rawData); //const dataString = Buffer.from(rawData).toString();
+        // console.log("This IS the raw data", rawData); //const dataString = Buffer.from(rawData).toString();
+
         let dataString: string = rawData; // Updated the type to string | number[]
-        // console.log(dataString)
+        // console.log(dataString) 
         const label = labelMap[characteristic.uuid]
+        console.log("Label: ", label); //const dataString = Buffer.from(rawData).toString();
 
         if (label === Label.TimeStamp) {
             // console.log("Full Timestamp: ", dataString); //FIXME: Help
         }
+
         if (label !== Label.TimeStamp) {
             setSensorDataVector((prevData) => {
-                const index = prevData.findIndex((data) => data.UUID === characteristic.uuid);
+                // const index = prevData.findIndex((data) => data[label].data);
+
+                const index = prevData.findLastIndex((data) => Array.isArray(data[label]?.data));
                 if (index !== -1) {
+                    console.log("Data has been set")
                     const updatedData = [...prevData]; // declare a new array which has all the data from the old one
-                    updatedData[index].data.push({ TimeStamp: dataString.slice(0, 6), value: dataString.slice(7, 15) });
-                    // console.log(updatedData)
+                    updatedData[label].data.push({ [dataString.slice(0, 6)]: dataString.slice(7, 15) });
                     return updatedData;
-                } else { // this is the first time we see this characteristic data 
-                    const newSensorData: SensorDataVector = {
-                        eventTimeStamp: currentEventTimestampID!, // Use currentEventTimestampID instead of EventTimestampID
-                        UUID: characteristic.uuid,
-                        label: label,
-                        data: [{
-                            TimeStamp: dataString.slice(0, 6), //currentEventTimestampID!
-                            value: dataString.slice(7, 15)
-                        }],
+
+                } else { // new data 
+
+                    console.log("Setting New data")
+                    const newSensorDataVector: SensorDataVector = {
+                        [label]: {
+                            eventTimeStamp: currentEventTimestampID,
+                            UUID: characteristic.uuid,
+                            data: [{ [dataString.slice(0, 6)]: dataString.slice(7, 15) }
+                            ]
+                        },
                     };
-                    return [...prevData, newSensorData];
+                    return [...prevData, newSensorDataVector];
                 }
             });
         }
     };
 
     const clearSensorDataVector = () => {
-        // setCharacteristicData([]);
         setSensorDataVector([]);
-        setUniversalTimeStamp([]);
-
     };
 
     return {
@@ -287,6 +279,51 @@ function useBLE(): BluetoothLowEnergyApi {
 }
 
 export default useBLE;
+
+    // const [UniversalTimeStamp, setUniversalTimeStamp] = useState<UniversalTimeStamp[]>([]);
+        // only runs in dummy function (cancel me ;)
+
+    // const [SensorDataVector, setSensorDataVector] = useState<SensorDataVectorOption2[]>([]);
+
+
+                // return [...prevData];
+                // const labelData: prevData[label] ={
+                //     label: "label"
+                //     SensorDataVector:
+                //     }
+                // }
+                // // const index = prevData.findIndex((data) => data.label === characteristic.uuid);
+                // console.log("Index")
+                // console.log(index)
+                // if (index !== -1) {
+                //     const updatedData = [...prevData]; // declare a new array which has all the data from the old one
+                //     updatedData[index].data.push({ TimeStamp: dataString.slice(0, 6), value: dataString.slice(7, 15) });
+                //     // console.log(updatedData)
+                                    // updatedData[index][label].data.push({ [dataString.slice(0, 6)]: dataString.slice(7, 15) });
+
+                //     return updatedData;
+                // } else { // this is the first time we see this characteristic data
+                //     const newSensorData: SensorDataVector = {
+                //         eventTimeStamp: currentEventTimestampID!, // Use currentEventTimestampID instead of EventTimestampID
+                //         UUID: characteristic.uuid,
+                //         label: label,
+                //         data: [{
+                //             TimeStamp: dataString.slice(0, 6), //currentEventTimestampID!
+                //             value: dataString.slice(7, 15)
+                //         }],
+                //     };
+
+
+// interface CharacteristicData {
+//     timeStamp: string;
+//     UUID: string;
+//     label: string;
+//     value: string;
+// }
+// interface UniversalTimeStamp {
+//     TimeStamp: string;
+//     dataPacketNumber: number;
+// };
 
 // interface SensorDataVectorOption2 {
 //     eventTimeStamp: string;

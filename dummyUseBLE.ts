@@ -107,23 +107,24 @@ function DummyUseBLE(): DummyUseBLEAPI {
     };
 
     const connectToDeviceDummy = async () => {
-        console.log("trying to stream data 107")
         startStreamingData();
     };
 
     const startStreamingData = async () => {
-        // setInterval(async () => {
-        const currentEventTimestampID = new Date().toISOString();
-        let counter = 0;
-        for (const uuid in labelMap) { // For each UUID package recieved from our list above
-            if (labelMap.hasOwnProperty(uuid)) {
-                const label = labelMap[uuid];
-                counter = counter + 1;
-                onDataUpdate(label, counter, uuid, currentEventTimestampID);
+        console.log("Starting data stream"); // Output: "000001"
+        setInterval(async () => {
+            const currentEventTimestampID = new Date().toISOString();
+            let counter = 0;
+            for (const uuid in labelMap) { // For each UUID package recieved from our list above
+                if (labelMap.hasOwnProperty(uuid)) {
+                    const label = labelMap[uuid];
+                    counter = counter + 1;
+                    onDataUpdate(label, counter, uuid, currentEventTimestampID);
+                }
             }
-        }
-        // await delay(5000);
-        // }, 5000); // Set the interval to 5000 milliseconds (5 seconds)
+            // await delay(5000);
+            console.log(counter); // Output: "000001"
+        }, 5000); // Set the interval to 5000 milliseconds (5 seconds)
     };
 
     const delay = (milliseconds: number) => {
@@ -141,17 +142,18 @@ function DummyUseBLE(): DummyUseBLEAPI {
         UnviersalTimeStampID: string
     ) => {
 
-        console.log("This is the data we are spoofing : ");
-        console.log(label)
+        // console.log("This is the data we are spoofing : ");
+        // console.log(label)
         const date = new Date().toISOString()
         let dataString: string = numberToSixCharString(counter);
-        console.log(dataString); // Output: "000001"
+        // console.log(dataString); // Output: "000001"
         if (label === Label.TimeStamp) {
             // console.log("Full Timestamp: ", dataString); //FIXME: Help
         }
         if (label !== Label.TimeStamp) {
             setSensorDataVector((prevData) => {
                 const index = prevData.findIndex((data) => data.UUID === label);
+                console.log(index)
                 if (index !== -1) {
                     const updatedData = [...prevData]; // declare a new array which has all the data from the old one
                     updatedData[index].data.push({ TimeStamp: date.slice(12, 18), value: dataString });
