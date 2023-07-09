@@ -15,16 +15,19 @@ const numberToSixCharString = (number: number): string => {
 };
 
 interface SensorDataVector {
+    [label: string]: SensorData;
+};
+
+interface SensorData {
     eventTimeStamp: string;
     UUID: string;
-    label: string;
     data: SensorDataItem[];
 };
 
 type SensorDataItem = {
-    TimeStamp: string
-    value: string
-}
+    [TimeStamp: string]: string;
+};
+
 
 interface UniversalTimeStamp {
     TimeStamp: string;
@@ -72,13 +75,26 @@ const labelMap = {
     [CHARACTERISTIC_UUIDS[9]]: Label.AccelerationZ
 }
 
+const numberMap = {
+    [CHARACTERISTIC_UUIDS[0]]: 0,
+    [CHARACTERISTIC_UUIDS[1]]: 1,
+    [CHARACTERISTIC_UUIDS[2]]: 2,
+    [CHARACTERISTIC_UUIDS[3]]: 3,
+    [CHARACTERISTIC_UUIDS[4]]: 4,
+    [CHARACTERISTIC_UUIDS[5]]: 5,
+    [CHARACTERISTIC_UUIDS[6]]: 6,
+    [CHARACTERISTIC_UUIDS[7]]: 7,
+    [CHARACTERISTIC_UUIDS[8]]: 8,
+    [CHARACTERISTIC_UUIDS[9]]: 9,
+}
+
 interface DummyUseBLEAPI {
     requestPermissions(): Promise<boolean>;
     scanForPeripherals(): void;
     allDevices: Device[];
     connectedDevice: Device | null;
     disconnectFromDevice: () => void;
-    SensorDataVector: SensorDataVector[];
+    SensorDataVector: SensorDataVector;
     clearSensorDataVector: () => void;
     connectToDevice(deviceId: Device): Promise<void>; // Add this line
     connectToDeviceDummy(): Promise<void>; // Add this line
@@ -89,9 +105,7 @@ function DummyUseBLE(): DummyUseBLEAPI {
     const [allDevices, setAllDevices] = useState<Device[]>([]);
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
     const [EventTimestampID, setEventTimestampID] = useState<string | null>(null); // State variable to store the stream ID
-
-    const [SensorDataVector, setSensorDataVector] = useState<SensorDataVector[]>([]);
-
+    const [SensorDataVector, setSensorDataVector] = useState<SensorDataVector>();
     const [UniversalTimeStamp, setUniversalTimeStamp] = useState<UniversalTimeStamp[]>([]);
 
     const requestPermissions = async () => {
@@ -124,7 +138,7 @@ function DummyUseBLE(): DummyUseBLEAPI {
             }
             // await delay(5000);
             console.log(counter); // Output: "000001"
-        }, 5000); // Set the interval to 5000 milliseconds (5 seconds)
+        }, 10000); // Set the interval to 5000 milliseconds (5 seconds)
     };
 
     const delay = (milliseconds: number) => {
@@ -136,49 +150,69 @@ function DummyUseBLE(): DummyUseBLEAPI {
     };
 
     const onDataUpdate = (
-        label: string,
+        lookedUpLabel: string,
         counter: number,
         uuid: string,
         UnviersalTimeStampID: string
     ) => {
 
-        // console.log("This is the data we are spoofing : ");
-        // console.log(label)
+        let lookedUpIndex = numberMap[uuid];
         const date = new Date().toISOString()
         let dataString: string = numberToSixCharString(counter);
-        // console.log(dataString); // Output: "000001"
-        if (label === Label.TimeStamp) {
-            // console.log("Full Timestamp: ", dataString); //FIXME: Help
+        let recievedTimestamp = date.slice(0, 6);
+        let recievedData = dataString;
+
+        if (lookedUpLabel === Label.TimeStamp) {
+            // FIX ME 
         }
-        if (label !== Label.TimeStamp) {
+        if (lookedUpLabel !== Label.TimeStamp) {
             setSensorDataVector((prevData) => {
-                const index = prevData.findIndex((data) => data.UUID === label);
-                console.log(index)
-                if (index !== -1) {
-                    const updatedData = [...prevData]; // declare a new array which has all the data from the old one
-                    updatedData[index].data.push({ TimeStamp: date.slice(12, 18), value: dataString });
-                    return updatedData;
-                } else { // this is the first time we see this characteristic data 
-                    const newSensorData: SensorDataVector = {
-                        eventTimeStamp: UnviersalTimeStampID, // Use currentEventTimestampID instead of EventTimestampID
+                let updatedData = prevData
+                console.log("[-1] prevDat looks like ", updatedData, " :")
+
+                if (!(prevData)) { // first first time 
+                    console.log("[0] First first time run for ", lookedUpLabel, " :")
+
+                    const newSensorData: SensorData = {
+                        eventTimeStamp: UnviersalTimeStampID,
                         UUID: uuid,
-                        label: label,
-                        data: [{
-                            TimeStamp: date.slice(0, 6), //currentEventTimestampID!
-                            value: dataString
-                        }],
-                    };
-                    return [...prevData, newSensorData];
+                        data: [{ [recievedTimestamp]: recievedData }],
+                    }
+                    const updatedData: SensorDataVector = { [lookedUpLabel]: newSensorData };
+                    updatedData[lookedUpLabel] = newSensorData; // maybe doesnt need it bc first time
+                    // randData[lookedUpIndex][lookedUpLabel]?.data.push({ [recievedTimestamp]: recievedData })
+                    console.log("[0] Here's what that data for ,", lookedUpLabel, " looks like:  ", updatedData)
+                    return updatedData
                 }
-            });
+
+                if (!(lookedUpLabel in updatedData)) { // first time for that sensor data
+                    console.log("[1] Sets up the specific sensor data into the vector")
+                    console.log("[1] Here is what we start with: ", updatedData)
+
+                    const newSensorData: SensorData = {
+                        eventTimeStamp: UnviersalTimeStampID,
+                        UUID: uuid,
+                        data: [{ [recievedTimestamp]: recievedData }],
+                    }
+                    updatedData[lookedUpLabel] = newSensorData; // maybe doesnt need it bc first time
+                    console.log("[1] Here's what that data looks like:  ", updatedData)
+
+                } else {
+                    console.log("[2] Data before  ", updatedData[lookedUpLabel].data)
+                    updatedData[lookedUpLabel].data.push({ [recievedTimestamp]: recievedData })
+                    console.log("[2] Data before  ", updatedData[lookedUpLabel].data)
+                }
+                return updatedData
+            })
         }
     };
+
     const disconnectFromDevice = () => {
         clearSensorDataVector;
     };
 
     const clearSensorDataVector = () => {
-        setSensorDataVector([]);
+        setSensorDataVector({});
         setUniversalTimeStamp([]);
     };
 
@@ -197,3 +231,44 @@ function DummyUseBLE(): DummyUseBLEAPI {
 }
 
 export default DummyUseBLE;
+
+                    // const newSensorData: SensorData = {
+                    //     eventTimeStamp: "UnviersalTimeStampID",
+                    //     UUID: "uuid",
+                    //     data: [{ ["recievedTimestamp"]: "recievedData" }],
+                    // };
+
+                    // if (randData[lookedUpIndex]) {
+                    //     // If the element at lookedUpIndex exists, update its property
+                    //     randData[lookedUpIndex][lookedUpLabel] = newSensorData;
+                    //     randData[lookedUpIndex][lookedUpLabel]?.data.push({
+                    //         [recievedTimestamp]: recievedData,
+                    //     });
+                    // } else {
+                    //     // If the element at lookedUpIndex doesn't exist, create it and update its property
+                    //     const newData: SensorDataVector = { [lookedUpLabel]: newSensorData };
+                    //     newData[lookedUpLabel]?.data.push({ [recievedTimestamp]: recievedData });
+                    //     randData[lookedUpIndex] = newData;
+                    // }
+
+    //     const index = prevData.findIndex((data) => data.UUID === label);
+    //     console.log(index)
+    //     if (index !== -1) {
+    //         const updatedData = [...prevData]; // declare a new array which has all the data from the old one
+    //         updatedData[index].data.push({ TimeStamp: date.slice(12, 18), value: dataString });
+    //         return updatedData;
+    //     } else { // this is the first time we see this characteristic data
+    //         const newSensorData: SensorDataVector = {
+    //             eventTimeStamp: UnviersalTimeStampID, // Use currentEventTimestampID instead of EventTimestampID
+    //             UUID: uuid,
+    //             label: label,
+    //             data: [{
+    //                 TimeStamp: date.slice(0, 6), //currentEventTimestampID!
+    //                 value: dataString
+    //             }],
+    //         };
+    //         return [...prevData, newSensorData];
+    //     }
+    // });
+    //     }
+    // };
